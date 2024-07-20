@@ -20,10 +20,9 @@ load_dotenv()
 
 @lru_cache
 def get_settings():
-    return config.Settings()
+    return config.Settings()  # type: ignore
 
 
-@lru_cache
 def get_db():
     db = SessionLocal()
     try:
@@ -32,18 +31,21 @@ def get_db():
         db.close()
 
 
-@app.get("/info/")
-async def info(settings: Annotated[config.Settings, Depends(get_settings)]):
-    return {
-        "sendblue_apiurl": settings.sendblue_apiurl,
-        "sendblue_apikey": settings.sendblue_apikey,
-        "sendblue_apisecret": settings.sendblue_apisecret,
-    }
-
-
 @app.post("/entries/")
-def create_entry(payload: helpers.MessagePayload, db: Session = Depends(get_db)):
+async def create_entry(payload: helpers.MessagePayload, settings: Annotated[config.Settings, Depends(get_settings)], db: Session = Depends(get_db)):
     logger.info("Received a webhook request from SendBlue.")
+    user_phone, content, date_sent = payload.from_number, payload.content, payload.date_sent
+    user = crud.get_user_by_phone_number(db, user_phone)
+    if not user:
+        raise HTTPException(
+            status_code=404, detail="User with phone number not found in database.")
+    entry_data = schemas.EntryCreate(
+        content=content, embeddings=None, emotions=None)
+    new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
+    logger.info(new_entry)
+    response = helpers.generate_response(user_phone, content, date_sent)
+    to_return = await helpers.send_message(user_phone, response, settings)
+    return to_return
 
 
 @app.post("/users/", response_model=schemas.User)
