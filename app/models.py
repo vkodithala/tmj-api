@@ -18,7 +18,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    phone_number = Column(String(10), nullable=False)
+    phone_number = Column(String(12), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     hashed_password = Column(String)
 

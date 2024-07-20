@@ -1,5 +1,9 @@
-from typing import Optional
+import requests
+from typing import Annotated, Optional
+from fastapi import Depends
 from pydantic import BaseModel
+
+from app import config
 
 
 class MessagePayload(BaseModel):
@@ -15,5 +19,24 @@ class MessagePayload(BaseModel):
     date_updated: str
     from_number: str
     number: str
-    was_downgraded: bool
+    was_downgraded: Optional[bool]
     plan: str
+
+
+def generate_response(user_phone: str, content: str, date_sent: str):
+    return f"Received the message from {user_phone} with content {content} on date {date_sent}."
+
+
+async def send_message(user_phone: str, response: str, settings: config.Settings):
+    headers = {
+        "sb-api-key-id": settings.sendblue_apikey,
+        "sb-api-secret-key": settings.sendblue_apisecret,
+        "Content-Type": "application/json"
+    }
+    data = {
+        "number": user_phone,
+        "content": response,
+    }
+    sendblue_response = requests.post(
+        settings.sendblue_apiurl, headers=headers, json=data)
+    return sendblue_response.json
