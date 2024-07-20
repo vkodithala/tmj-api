@@ -1,0 +1,7 @@
+## byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# environments
+.env
+env/
