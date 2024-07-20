@@ -34,7 +34,7 @@ class Entry(EntryBase):
 
 
 class UserBase(BaseModel):
-    phone_number: int
+    phone_number: str
 
 
 class UserCreate(UserBase):
