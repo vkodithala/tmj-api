@@ -23,6 +23,7 @@ class MessagePayload(BaseModel):
     plan: str
 
 
+# todo: what you're gonna wanna work on Varun
 def generate_response(user_phone: str, content: str, date_sent: str):
     return f"Received the message from {user_phone} with content {content} on date {date_sent}."
 
