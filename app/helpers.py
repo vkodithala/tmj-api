@@ -44,7 +44,6 @@ class MessagePayload(BaseModel):
     was_downgraded: Optional[bool]
     plan: str
 
-
 # Rebuild storage context and load index for the first chatbot
 
 def main(user_input, settings: config.Settings):
@@ -172,8 +171,6 @@ def main(user_input, settings: config.Settings):
             # print()
             return response.content
 
-
-# todo: what you're gonna wanna work on Varun
 def generate_response(user_phone: str, content: str, date_sent: str, settings: config.Settings):
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
