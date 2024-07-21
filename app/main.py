@@ -5,8 +5,9 @@ import logging
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
+from pgvector.sqlalchemy import Vector
 
-from app import crud, models, schemas, helpers, config, constants
+from app import crud, models, schemas, helpers, config, constants, tokenizer
 from app.database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
@@ -39,10 +40,18 @@ async def create_entry(payload: helpers.MessagePayload, settings: Annotated[conf
     if not user:
         raise HTTPException(
             status_code=404, detail="User with phone number not found in database.")
+    entry_embedding = tokenizer.embed(content)
     entry_data = schemas.EntryCreate(
-        content=content, embeddings=None, emotions=None)
+        content=content, embedding=entry_embedding, emotions=None)
     new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
     logger.info(new_entry)
+
+    query_embed = tokenizer.embed("Hello world")
+    logger.info(query_embed)
+    logger.info("SIM SEARCH")
+    logger.info(crud.query_embeddings(
+        db, user.id, query_embed))  # type: ignore
+
     response = helpers.generate_response(
         user_phone, content, date_sent, settings)
     to_return = await helpers.send_message(user_phone, response, settings)

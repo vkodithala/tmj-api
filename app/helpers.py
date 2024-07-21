@@ -24,6 +24,9 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage
 
+from sqlalchemy import make_url
+from llama_index.vector_stores.postgres import PGVectorStore
+
 
 class MessagePayload(BaseModel):
     accountEmail: str
