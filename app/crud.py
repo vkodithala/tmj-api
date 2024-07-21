@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from . import models, schemas
 
@@ -34,3 +35,9 @@ def create_user_entry(db: Session, entry: schemas.EntryCreate, user_id: int):
     db.commit()
     db.refresh(db_entry)
     return db_entry
+
+
+def query_embeddings(db: Session, user_id: int, embedding: list[float]):
+    sql = f"SELECT * FROM entries ORDER BY embedding <-> '{
+        embedding}' LIMIT 5;"
+    return db.execute(text(sql)).fetchall()

@@ -1,7 +1,9 @@
 import datetime
 from typing import List, Optional
-from pydantic import BaseModel
+import numpy as np
+from pydantic import BaseModel, ConfigDict
 from enum import Enum as PyEnum
+from pgvector.sqlalchemy import Vector
 
 
 class EmotionsEnum(str, PyEnum):
@@ -16,7 +18,11 @@ class EmotionsEnum(str, PyEnum):
 class EntryBase(BaseModel):
     emotions: Optional[List[EmotionsEnum]]
     content: str
-    embeddings: Optional[List[float]]
+    embedding: Optional[List[float]]
+
+    class Config:
+        orm_mode = True
+        arbitrary_types_allowed = True
 
 
 class EntryCreate(EntryBase):
@@ -28,9 +34,6 @@ class Entry(EntryBase):
     created_at: datetime.datetime
     date: datetime.date
     author_id: int
-
-    class Config:
-        orm_mode = True
 
 
 class UserBase(BaseModel):
