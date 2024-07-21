@@ -6,7 +6,7 @@ import logging
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from app import crud, models, schemas, helpers, config
+from app import crud, models, schemas, helpers, config, constants
 from app.database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
@@ -43,14 +43,18 @@ async def create_entry(payload: helpers.MessagePayload, settings: Annotated[conf
         content=content, embeddings=None, emotions=None)
     new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
     logger.info(new_entry)
-    response = helpers.generate_response(user_phone, content, date_sent)
+    response = helpers.generate_response(
+        user_phone, content, date_sent, settings)
     to_return = await helpers.send_message(user_phone, response, settings)
     return to_return
 
 
 @app.post("/users/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def create_user(user: schemas.UserCreate, settings: Annotated[config.Settings, Depends(get_settings)], db: Session = Depends(get_db)):
     db_user = crud.get_user_by_phone_number(db, user.phone_number)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+        raise HTTPException(
+            status_code=400, detail="Email already registered!")
+    crud.create_user(db=db, user=user)
+    response = await helpers.send_message(user.phone_number, constants.welcome_message, settings)
+    return response
