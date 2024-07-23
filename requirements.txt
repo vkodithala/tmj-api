@@ -49,6 +49,7 @@ httptools==0.6.1
 httpx==0.27.0
 huggingface-hub==0.24.0
 idna==3.7
+iniconfig==2.0.0
 ipykernel==6.29.5
 ipython==8.26.0
 jedi==0.19.1
@@ -114,6 +115,7 @@ pexpect==4.9.0
 pgvector==0.2.5
 pillow==10.4.0
 platformdirs==4.2.2
+pluggy==1.5.0
 prettytable==3.10.2
 prompt_toolkit==3.0.47
 protobuf==4.25.3
@@ -129,6 +131,7 @@ pydantic-settings==2.3.4
 pydantic_core==2.18.4
 Pygments==2.18.0
 pypdf==4.3.0
+pytest==8.3.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-multipart==0.0.9
