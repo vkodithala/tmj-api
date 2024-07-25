@@ -55,6 +55,7 @@ async def create_entry(payload: helpers.MessagePayload, settings: Annotated[conf
     response = helpers.generate_response(
         user_phone, content, date_sent, settings)
     to_return = await helpers.send_message(user_phone, response, settings)
+    logger.info(to_return)
     return to_return
 
 
