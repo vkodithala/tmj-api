@@ -55,6 +55,7 @@ async def create_entry(payload: helpers.MessagePayload, settings: Annotated[conf
     response = helpers.generate_response(
         user_phone, content, date_sent, settings)
     to_return = await helpers.send_message(user_phone, response, settings)
+    logger.info(to_return)
     return to_return
 
 
@@ -63,7 +64,8 @@ async def create_user(user: schemas.UserCreate, settings: Annotated[config.Setti
     db_user = crud.get_user_by_phone_number(db, user.phone_number)
     if db_user:
         raise HTTPException(
-            status_code=400, detail="Email already registered!")
-    crud.create_user(db=db, user=user)
-    response = await helpers.send_message(user.phone_number, constants.welcome_message, settings)
+            status_code=400, detail="User already registered.")
+    response = crud.create_user(db=db, user=user)
     return response
+    # response = await helpers.send_message(user.phone_number, constants.welcome_message, settings)
+    # return response
