@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from pgvector.sqlalchemy import Vector
 
-from app import crud, models, schemas, helpers, config, constants, tokenizer
+from app import crud, models, schemas, helpers, config, constants, tokenizer, utils
 from app.database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
@@ -33,27 +33,22 @@ def get_db():
 
 
 @app.post("/entries/")
-async def create_entry(payload: helpers.MessagePayload, settings: Annotated[config.Settings, Depends(get_settings)], db: Session = Depends(get_db)):
+async def create_entry(payload: utils.MessagePayload, settings: Annotated[config.Settings, Depends(get_settings)], db: Session = Depends(get_db)):
     logger.info("Received a webhook request from SendBlue.")
     user_phone, content, date_sent = payload.from_number, payload.content, payload.date_sent
     user = crud.get_user_by_phone_number(db, user_phone)
     if not user:
         raise HTTPException(
             status_code=404, detail="User with phone number not found in database.")
+    crud.query_embeddings(
+        db, user.id, tokenizer.embed(content))  # type: ignore
+
+    response = helpers.generate_response(
+        user_phone, content, date_sent, logger, settings, db)
     entry_embedding = tokenizer.embed(content)
     entry_data = schemas.EntryCreate(
         content=content, embedding=entry_embedding, emotions=None)
     new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
-    logger.info(new_entry)
-
-    query_embed = tokenizer.embed("Hello world")
-    logger.info(query_embed)
-    logger.info("SIM SEARCH")
-    logger.info(crud.query_embeddings(
-        db, user.id, query_embed))  # type: ignore
-
-    response = helpers.generate_response(
-        user_phone, content, date_sent, settings)
     to_return = await helpers.send_message(user_phone, response, settings)
     return to_return
 
