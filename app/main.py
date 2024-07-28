@@ -50,7 +50,7 @@ async def create_entry(payload: utils.MessagePayload, settings: Annotated[config
         content=content, embedding=entry_embedding, emotions=None)
     new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
     to_return = await helpers.send_message(user_phone, response, settings)
-    return to_return
+    return response
 
 
 @app.post("/users/", response_model=schemas.User)

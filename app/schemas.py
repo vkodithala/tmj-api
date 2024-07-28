@@ -6,17 +6,8 @@ from enum import Enum as PyEnum
 from pgvector.sqlalchemy import Vector
 
 
-class EmotionsEnum(str, PyEnum):
-    SADNESS = "sadness"
-    HAPPINESS = "happiness"
-    FEAR = "fear"
-    ANGER = "anger"
-    SURPRISE = "surprise"
-    DISGUST = "disgust"
-
-
 class EntryBase(BaseModel):
-    emotions: Optional[List[EmotionsEnum]]
+    emotions: Optional[List[str]]
     content: str
     embedding: Optional[List[float]]
 
