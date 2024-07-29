@@ -3,14 +3,20 @@ import json
 from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
-
+    
+from llama_index.extractors.entity import EntityExtractor
+from llama_index.core.node_parser import SentenceSplitter
+from transformers import pipeline
+from span_marker import SpanMarkerModel
 # We won't have competing threads in this example app
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from span_marker import SpanMarkerModel
 
-
+entityModel = SpanMarkerModel.from_pretrained("tomaarsen/span-marker-xlm-roberta-base-multinerd")
 # Initialize tokenizer and model for GTE-base
 tokenizer = AutoTokenizer.from_pretrained('thenlper/gte-base')
 model = AutoModel.from_pretrained('thenlper/gte-base')
+emotionClassification = pipeline("text-classification", model="SamLowe/roberta-base-go_emotions")
 
 
 def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
@@ -34,4 +40,31 @@ def embed(text, metadata={}):
 
     embeddings = F.normalize(embeddings, p=2, dim=1)
 
+    
+
     return embeddings.numpy().tolist()[0]
+
+
+
+def emotion(text, metadata={}):
+    combined_text = " ".join(
+        [text] + [v for k, v in metadata.items() if isinstance(v, str)])
+    
+    return emotionClassification(combined_text)[0].get('label')
+
+
+def entity(text, metadata={}):
+    combined_text = " ".join(
+        [text] + [v for k, v in metadata.items() if isinstance(v, str)])
+    
+    entities = entityModel.predict(combined_text)
+
+    print("\nresult from entity extraction: ", entities)
+
+    for entity in entities:
+        entity_item = entity['span']
+        entity_type = entity['label']
+
+    print("\nresult from entity extraction: ", entity_type, ": ", entity_item)
+
+    return entity_item, entity_type

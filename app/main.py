@@ -46,8 +46,9 @@ async def create_entry(payload: utils.MessagePayload, settings: Annotated[config
     response = helpers.generate_response(
         user_phone, content, date_sent, logger, settings, db)
     entry_embedding = tokenizer.embed(content)
+    emotion = tokenizer.emotion(content)
     entry_data = schemas.EntryCreate(
-        content=content, embedding=entry_embedding, emotions=None)
+        content=content, embedding=entry_embedding, emotions=emotion)
     new_entry = crud.create_user_entry(db, entry_data, user.id)  # type: ignore
     to_return = await helpers.send_message(user_phone, response, settings)
     return response

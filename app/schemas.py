@@ -7,7 +7,7 @@ from pgvector.sqlalchemy import Vector
 
 
 class EntryBase(BaseModel):
-    emotions: Optional[List[str]]
+    emotions: str
     content: str
     embedding: Optional[List[float]]
 
