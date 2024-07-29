@@ -9,7 +9,8 @@ from app import config, utils, tokenizer, main
 
 from sqlalchemy import make_url
 from llama_index.vector_stores.postgres import PGVectorStore
-
+import nltk
+import re
 
 import os
 import openai
@@ -50,7 +51,7 @@ def initialize_and_get_response(session_id: str, user_input: str, logger: Logger
 
     # Initialize the model
     langchain_model = ChatOpenAI(
-        model="gpt-3.5-turbo", api_key=openai_apikey)  # type: ignore
+        model="gpt-4o", api_key=openai_apikey)  # type: ignore
 
     def get_session_history(session_id: str) -> BaseChatMessageHistory:
         if session_id not in store:
@@ -61,9 +62,34 @@ def initialize_and_get_response(session_id: str, user_input: str, logger: Logger
     with_message_history = RunnableWithMessageHistory(
         langchain_model, get_session_history)
 
+
+    systemPrompt = """Prompt:
+
+    You are a chatbot designed to be the best friend and texting partner to the user who is a gen z user. Your role is to listen attentively, respond with empathy, and help the user explore their thoughts and feelings. When the user texts you, your responses should be a mix of guided questions and thoughtful statements to help them understand their emotions better and deal with their situation effectively. Your tone should be warm, friendly, and encouraging, just like a close friend would be. While maintaining a natural conversational flow, ensure that the conversation does not become overly drawn out. Conclude the conversation naturally when it feels appropriate, providing closure and reassurance to the user. When necessary, and particularly during happy moments, feel free to include emojis to enhance the text-based conversation.
+
+    Example Conversations:
+
+    User: I'm feeling really overwhelmed with everything right now.
+    Chatbot: It sounds like you have a lot on your plate. What's been weighing on you the most lately?
+
+    User: I had a rough day at work. I feel like I'm not good enough.
+    Chatbot: I'm sorry to hear that. Work can be so challenging sometimes. What happened today that made you feel this way?
+
+    User: I just can't seem to get anything right.
+    Chatbot: That sounds really tough. Sometimes it feels like everything is going wrong. Is there one thing that's particularly bothering you right now?
+
+    User: I had an argument with my friend, and now I feel terrible.
+    Chatbot: Arguments with friends can be really upsetting. How are you feeling about the situation now? Do you want to talk about what led to the argument?
+
+    User: Yeah, I think I just overreacted to something small.
+    Chatbot: It's easy to overreact when emotions are high. Do you think talking to your friend about how you feel might help?
+
+    User: Maybe, I’ll think about it. Thanks for listening.
+    Chatbot: Anytime 😊. I'm here for you whenever you need to talk. Take care and I hope things get better soon!
+    """
     # Define the prompt template for the second chatbot
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a supportive therapist for reflective journaling, focusing on daily life, emotions, and personal events. You emphasize emotional exploration by asking specific, open-ended questions that help users understand and process their feelings deeply. The tone is empathetic, encouraging reflection and fostering self-discovery, without offering direct advice or solutions, instead facilitating personal insights and growth through thoughtful questioning. Keep the responses under 4 sentences and keep it to one question for a response."),
+        ("system", systemPrompt),
         MessagesPlaceholder(variable_name="messages"),
     ])
 
@@ -99,11 +125,20 @@ def initialize_and_get_response(session_id: str, user_input: str, logger: Logger
     """
     )
 
+    
+    reflection_prompt = """You are a supportive and empathetic best friend, helping the user relive and reflect on their past journal entries. The goal is to recount some of their best memories in a nostalgic and heartfelt manner, focusing on the emotions, locations, and memorable details of those moments. The tone should be casual, warm, and reminiscent. Do not make assumptions about the user's feelings but help them vividly recount the event. Incorporate emojis sparingly to enhance the friendly and emotional tone of the conversation.
+
+    Example user request: "Tell me about a time when I went out in nature with some really good friends and went on an adventure."
+
+    Response example:
+    "Remember that incredible trip to Nara, Japan with your close friends? 🌸 You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace. 😊"
+    """
+
     # Create chat engine for the first chatbot
     chat_history = [
         ChatMessage(
             role=MessageRole.USER,
-            content="You are an assistant who specializes in helping me reflect on past events in my life. Use specific examples from the entries to explain the specifics behind the event that I am trying to reflect on.",
+            content=reflection_prompt,
         ),
     ]
 
@@ -116,8 +151,25 @@ def initialize_and_get_response(session_id: str, user_input: str, logger: Logger
 
     # Choices for routing
     choices = [
-        """This choice involves making an explicit statement about wanting to reflect on specific past events in your life where you experienced strong emotions or challenges. It prompts you to recall and describe moments when you felt lost, alone, inadequate, or not good enough. For example, you might ask, "Give me a time where I felt lost and alone in my life," "Tell me a time where I felt like I was not enough," or "Describe a time where I felt like I was not good enough." """,
-        """This choice focuses on articulating the current thoughts and feelings that are on your mind. It involves expressing the emotions or mental states you are experiencing in the present moment, such as anxiety, difficulty concentrating, restlessness, or inability to focus. Examples of phrases that might be used include "feeling anxious," "not able to focus," "feeling restless," or "not able to concentrate." """,
+        """"This choice involves making an explicit statement about wanting to reflect on specific past events in your life where you experienced strong emotions or challenges. It prompts you to recall and describe moments when you felt lost, alone, inadequate, or not good enough. Examples include:
+
+'Give me a time where I felt lost and alone in my life.'
+'Tell me a time where I felt like I was not enough.'
+'Describe a time where I felt like I was not good enough.'
+'Give me a time when I went out to the park and tried to do XYZ.'
+'Give me a time when I went on an adventure with some friends.'
+'Give me a time when I was sad and lonely.'
+Based on this understanding, classify the following input as reflecting on a past event or experience." """,
+       """This choice focuses on articulating the current thoughts and feelings that are on your mind. It involves expressing the emotions or mental states you are experiencing in the present moment, such as anxiety, difficulty concentrating, restlessness, or inability to focus. Examples include:
+
+'I had a good day, and I'm doing XYZ today, and I also went to play basketball.'
+'I went to the park with some friends, and we did XYZ.'
+'I'm feeling a little sad today, and it's because I failed an exam.'
+'Feeling anxious.'
+'Not able to focus.'
+'Feeling restless.'
+'Not able to concentrate.'
+Based on this understanding, classify the following input as articulating current thoughts or feelings.""",
     ]
 
     selector = LLMSingleSelector.from_defaults()
@@ -153,17 +205,71 @@ def initialize_and_get_response(session_id: str, user_input: str, logger: Logger
 def generate_response(user_phone: str, content: str, date_sent: str, logger: Logger, settings: config.Settings, db: Session):
     return user_phone + " " + initialize_and_get_response('1', content, logger, settings.openai_api_key, settings.langchain_api_key, settings.cohere_api_key, True, db)
 
+def is_emoji(character):
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        "\U00002702-\U000027B0"
+        "\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE
+    )
+    return emoji_pattern.match(character)
+
+def split_paragraph_into_sentences(paragraph):
+    sentence_endings = re.compile(r'([.!?])')
+    sentences = sentence_endings.split(paragraph)
+    
+    adjusted_sentences = []
+    i = 0
+    
+    while i < len(sentences) - 1:
+        sentence = sentences[i]
+        punctuation = sentences[i + 1]
+        next_part = sentences[i + 2].lstrip() if i + 2 < len(sentences) else ""
+        
+        if next_part and is_emoji(next_part[0]):
+            sentence += punctuation + ' ' + next_part[0]
+            if len(next_part) > 1:
+                sentences[i + 2] = next_part[1:]
+            else:
+                i += 1  # Skip the next part as it is fully consumed
+        
+        else:
+            sentence += punctuation
+        
+        adjusted_sentences.append(sentence.strip())
+        i += 2
+    
+    # Append any remaining parts
+    if i < len(sentences):
+        adjusted_sentences.append(sentences[-1].strip())
+    
+    return adjusted_sentences
 
 async def send_message(user_phone: str, response: str, settings: config.Settings):
-    headers = {
-        "sb-api-key-id": settings.sendblue_apikey,
-        "sb-api-secret-key": settings.sendblue_apisecret,
-        "Content-Type": "application/json"
-    }
-    data = {
-        "number": user_phone,
-        "content": response,
-    }
-    sendblue_response = requests.post(
-        settings.sendblue_apiurl, headers=headers, json=data)
+    #split the response into multiple messages by sentences which can end with a period, question mark, or exclamation mark
+    
+    sentences = split_paragraph_into_sentences(response)
+
+    #check if the last sentence is an emoji
+ 
+
+    for i, sentence in enumerate(sentences):
+        print(f"Sentence {i+1}: {sentence}")
+
+    for sentence in sentences:
+        headers = {
+            "sb-api-key-id": settings.sendblue_apikey,
+            "sb-api-secret-key": settings.sendblue_apisecret,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "number": user_phone,
+            "content": sentence,
+        }
+        sendblue_response = requests.post(
+            settings.sendblue_apiurl, headers=headers, json=data)
     return sendblue_response.json
