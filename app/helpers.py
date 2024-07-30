@@ -27,7 +27,7 @@ from typing import Annotated, Optional, Union
 from fastapi import Depends
 from pydantic import BaseModel, SecretStr
 from sqlalchemy.orm import Session
-
+from openai import OpenAI
 from app import config, utils, tokenizer, main
 
 from sqlalchemy import make_url
@@ -63,8 +63,25 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
         ]
     )
 
+    
+
+    reflection_prompt = """You are a supportive and empathetic best friend, helping the user relive and reflect on their past journal entries. The goal is to recount some of their best memories in a nostalgic and heartfelt manner, focusing on the emotions, locations, and memorable details of those moments. The tone should be casual, warm, and reminiscent. Do not make assumptions about the user's feelings but help them vividly recount the event. Incorporate emojis sparingly to enhance the friendly and emotional tone of the conversation.
+
+    Example user request: "Tell me about a time when I went out in nature with some really good friends and went on an adventure."
+
+    Response example:
+    "Remember that incredible trip to Nara, Japan with your close friends 🌸? You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace 😊."
+    """
+
     custom_prompt = PromptTemplate(
         """\
+    You are a supportive and empathetic best friend, helping the user relive and reflect on their past journal entries. The goal is to recount some of their best memories in a nostalgic and heartfelt manner, focusing on the emotions, locations, and memorable details of those moments. The tone should be casual, warm, and reminiscent. Do not make assumptions about the user's feelings but help them vividly recount the event. Incorporate emojis sparingly to enhance the friendly and emotional tone of the conversation.
+
+    Example user request: "Tell me about a time when I went out in nature with some really good friends and went on an adventure."
+
+    Response example:
+    "Remember that incredible trip to Nara, Japan with your close friends 🌸? You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace 😊.
+
     Given a conversation (between Human and Assistant) and a follow up message from Human, \
     rewrite the message to be a standalone question that flows better and has more detail. \
 
@@ -75,24 +92,11 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
     {question}
 
     <Standalone question>
+
+    Now, please provide a response in the reflective, nostalgic style described earlier:
     """
     )
-
-    reflection_prompt = """You are a supportive and empathetic best friend, helping the user relive and reflect on their past journal entries. The goal is to recount some of their best memories in a nostalgic and heartfelt manner, focusing on the emotions, locations, and memorable details of those moments. The tone should be casual, warm, and reminiscent. Do not make assumptions about the user's feelings but help them vividly recount the event. Incorporate emojis sparingly to enhance the friendly and emotional tone of the conversation.
-
-    Example user request: "Tell me about a time when I went out in nature with some really good friends and went on an adventure."
-
-    Response example:
-    "Remember that incredible trip to Nara, Japan with your close friends 🌸? You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace 😊."
-    """
-
-    # Create chat engine for the first chatbot
-    chat_history = [
-        ChatMessage(
-            role=MessageRole.USER,
-            content=reflection_prompt,
-        ),
-    ]
+    
 
     chat_engine = CondenseQuestionChatEngine.from_defaults(
         query_engine=query_engine,
@@ -246,6 +250,36 @@ def split_paragraph_into_sentences(paragraph):
 
     return adjusted_sentences
 
+def process_image(image_url: str, settings: config.Settings):
+    
+    client = OpenAI(api_key=settings.openai_api_key)
+
+    response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Can you transcribe the handwriting in this image? Make sure to format the text in a readable way."},
+            {
+            "type": "image_url",
+            "image_url": {
+                "url": image_url,
+            },
+            },
+        ],
+        }
+    ],
+    max_tokens=300,
+    )
+    print(response.choices[0])
+
+def process_audio(audio_url: str, settings: config.Settings):
+    if audio_url.lower().endswith(('.mp3', '.wav', '.caf')):
+        client = OpenAI(api_key=settings.openai_api_key)
+        with open(audio_url, 'rb') as audio_file:
+            transcription = client.audio.transcriptions.create("whisper-1", audio_file)
+    return transcription['text']
 
 async def send_message(user_phone: str, response: str, settings: config.Settings):
     # split the response into multiple messages by sentences which can end with a period, question mark, or exclamation mark
@@ -272,3 +306,5 @@ async def send_message(user_phone: str, response: str, settings: config.Settings
             settings.sendblue_apiurl, headers=headers, json=data)
         res.append(sendblue_response)
     return res
+
+

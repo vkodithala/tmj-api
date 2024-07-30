@@ -93,6 +93,17 @@ async def create_entry(payload: utils.MessagePayload, settings: Annotated[config
     logger.info("Received a webhook request from SendBlue.")
     user_phone, content, date_sent = payload.from_number, payload.content, payload.date_sent
     user = crud.get_user_by_phone_number(db, user_phone)
+    media_url = payload.media_url
+
+    #determine if the url is an image or or audio
+    if media_url.lower().endswith(('.png', '.jpg', '.jpeg', '.hiec' '.webp', '.bmp', '.tiff')):
+        print(f"Image URL: {media_url}")
+        helpers.process_image(media_url,settings= settings)
+
+    if media_url.lower().endswith(('.mp3', '.wav', '.caf')):
+        print(f"Audio URL: {media_url}")
+        helpers.process_audio(media_url,settings= settings)
+
     if not user:
         raise HTTPException(
             status_code=404, detail="User with phone number not found in database.")
