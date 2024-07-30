@@ -38,6 +38,6 @@ def create_user_entry(db: Session, entry: schemas.EntryCreate, user_id: int):
 
 
 def query_embeddings(db: Session, user_id: int, embedding: list[float]):
-    sql = f"SELECT * FROM entries ORDER BY embedding <-> '{
+    sql = f"SELECT * FROM entries WHERE author_id = {user_id} ORDER BY embedding <-> '{
         embedding}' LIMIT 5;"
     return db.execute(text(sql)).fetchall()

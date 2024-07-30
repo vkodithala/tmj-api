@@ -107,12 +107,21 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
     redis_history = main.get_session_history(redis_client, user_phone)
     logger.info(redis_history)
 
-    systemPrompt = """Prompt:
+    systemPrompt = f"""Prompt:
+
+    You are a chatbot designed to be the best friend and texting partner to the user who is a gen z user. Your role is to listen attentively, respond with empathy, and help the user explore their thoughts and feelings. When the user texts you, your responses should be a mix of guided questions and thoughtful statements to help them understand their emotions better and deal with their situation effectively. Your tone should be warm, friendly, and encouraging, just like a close friend would be. While maintaining a natural conversational flow, ensure that the conversation does not become overly drawn out. Conclude the conversation naturally when it feels appropriate, providing closure and reassurance to the user. When necessary, and particularly during happy moments, feel free to include emojis to enhance the text-based conversation.
+
+    Here's a list of all the messages sent by your user in the last day.
+    {redis_history}
+    """
+
+    prompt = f"""Prompt:
 
     You are a chatbot designed to be the best friend and texting partner to the user who is a gen z user. Your role is to listen attentively, respond with empathy, and help the user explore their thoughts and feelings. When the user texts you, your responses should be a mix of guided questions and thoughtful statements to help them understand their emotions better and deal with their situation effectively. Your tone should be warm, friendly, and encouraging, just like a close friend would be. While maintaining a natural conversational flow, ensure that the conversation does not become overly drawn out. Conclude the conversation naturally when it feels appropriate, providing closure and reassurance to the user. When necessary, and particularly during happy moments, feel free to include emojis to enhance the text-based conversation.
 
     Example Conversations:
 
+    ***
     User: I'm feeling really overwhelmed with everything right now.
     Chatbot: It sounds like you have a lot on your plate. What's been weighing on you the most lately?
 
@@ -130,10 +139,15 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
 
     User: Maybe, I’ll think about it. Thanks for listening.
     Chatbot: Anytime 😊. I'm here for you whenever you need to talk. Take care and I hope things get better soon!
+    ***
+
+    Here's a list of all the messages sent by your user in the last day.
+    {redis_history}
     """
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", systemPrompt),
+        ("human", "{message}")
     ])
     logger.info(prompt)
 
@@ -144,23 +158,23 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
     choices = [
         """"This choice involves making an explicit statement about wanting to reflect on specific past events in your life where you experienced strong emotions or challenges. It prompts you to recall and describe moments when you felt lost, alone, inadequate, or not good enough. Examples include:
 
-'Give me a time where I felt lost and alone in my life.'
-'Tell me a time where I felt like I was not enough.'
-'Describe a time where I felt like I was not good enough.'
-'Give me a time when I went out to the park and tried to do XYZ.'
-'Give me a time when I went on an adventure with some friends.'
-'Give me a time when I was sad and lonely.'
-Based on this understanding, classify the following input as reflecting on a past event or experience." """,
+            'Give me a time where I felt lost and alone in my life.'
+            'Tell me a time where I felt like I was not enough.'
+            'Describe a time where I felt like I was not good enough.'
+            'Give me a time when I went out to the park and tried to do XYZ.'
+            'Give me a time when I went on an adventure with some friends.'
+            'Give me a time when I was sad and lonely.'
+            Based on this understanding, classify the following input as reflecting on a past event or experience." """,
         """This choice focuses on articulating the current thoughts and feelings that are on your mind. It involves expressing the emotions or mental states you are experiencing in the present moment, such as anxiety, difficulty concentrating, restlessness, or inability to focus. Examples include:
 
-'I had a good day, and I'm doing XYZ today, and I also went to play basketball.'
-'I went to the park with some friends, and we did XYZ.'
-'I'm feeling a little sad today, and it's because I failed an exam.'
-'Feeling anxious.'
-'Not able to focus.'
-'Feeling restless.'
-'Not able to concentrate.'
-Based on this understanding, classify the following input as articulating current thoughts or feelings.""",
+            'I had a good day, and I'm doing XYZ today, and I also went to play basketball.'
+            'I went to the park with some friends, and we did XYZ.'
+            'I'm feeling a little sad today, and it's because I failed an exam.'
+            'Feeling anxious.'
+            'Not able to focus.'
+            'Feeling restless.'
+            'Not able to concentrate.'
+            Based on this understanding, classify the following input as articulating current thoughts or feelings.""",
     ]
 
     selector = LLMSingleSelector.from_defaults()
@@ -176,7 +190,7 @@ Based on this understanding, classify the following input as articulating curren
     else:
         # Use the second chatbot (RAG disabled)
         response = chain.invoke(
-            {"\"message\"": user_input})
+            {"message": user_input})
         response = response.content
 
     return response  # type: ignore

@@ -3,20 +3,16 @@ import json
 from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
-    
-from llama_index.extractors.entity import EntityExtractor
-from llama_index.core.node_parser import SentenceSplitter
-from transformers import pipeline
-from span_marker import SpanMarkerModel
 # We won't have competing threads in this example app
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-from span_marker import SpanMarkerModel
 
-entityModel = SpanMarkerModel.from_pretrained("tomaarsen/span-marker-xlm-roberta-base-multinerd")
+# entityModel = SpanMarkerModel.from_pretrained(
+#     "tomaarsen/span-marker-xlm-roberta-base-multinerd")
 # Initialize tokenizer and model for GTE-base
 tokenizer = AutoTokenizer.from_pretrained('thenlper/gte-base')
 model = AutoModel.from_pretrained('thenlper/gte-base')
-emotionClassification = pipeline("text-classification", model="SamLowe/roberta-base-go_emotions")
+# emotionClassification = pipeline(
+#     "text-classification", model="SamLowe/roberta-base-go_emotions")
 
 
 def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
@@ -40,31 +36,33 @@ def embed(text, metadata={}):
 
     embeddings = F.normalize(embeddings, p=2, dim=1)
 
-    
-
     return embeddings.numpy().tolist()[0]
 
 
+# def emotion(text, metadata={}):
+#     combined_text = " ".join(
+#         [text] + [v for k, v in metadata.items() if isinstance(v, str)])
 
-def emotion(text, metadata={}):
-    combined_text = " ".join(
-        [text] + [v for k, v in metadata.items() if isinstance(v, str)])
-    
-    return emotionClassification(combined_text)[0].get('label')
+#     result = emotionClassification(combined_text)
+
+#     if result and isinstance(result, list):
+#         return result[0].get("label")
+#     else:
+#         raise ValueError("Unexpected result type from emotionClassification.")
 
 
-def entity(text, metadata={}):
-    combined_text = " ".join(
-        [text] + [v for k, v in metadata.items() if isinstance(v, str)])
-    
-    entities = entityModel.predict(combined_text)
+# def entity(text, metadata={}):
+#     combined_text = " ".join(
+#         [text] + [v for k, v in metadata.items() if isinstance(v, str)])
 
-    print("\nresult from entity extraction: ", entities)
+#     entities = entityModel.predict(combined_text)
 
-    for entity in entities:
-        entity_item = entity['span']
-        entity_type = entity['label']
+#     result = []
 
-    print("\nresult from entity extraction: ", entity_type, ": ", entity_item)
+#     # for entity in entities:
+#     #     entity_item = entity['span']
+#     #     entity_type = entity['label']
 
-    return entity_item, entity_type
+#     # print("\nresult from entity extraction: ", entity_type, ": ", entity_item)
+
+#     return entity_item, entity_type
