@@ -101,20 +101,10 @@ async def create_entry(payload: utils.MessagePayload, settings: Annotated[config
 
     response = helpers.generate_response(
         user_phone, content, date_sent, logger, settings, db, redis_client)
-<<<<<<< HEAD
-
-    await helpers.send_message(user_phone, response, settings)
-
-=======
->>>>>>> 1617e842aab080011314d9a89f98dc4fe27b9ae8
     entry_embedding = tokenizer.embed(content)
     # emotion = tokenizer.emotion(content)
     entry_data = schemas.EntryCreate(
-<<<<<<< HEAD
-        content=content, embedding=entry_embedding, emotions="")
-=======
         content=content, embedding=entry_embedding, emotions=None)
->>>>>>> 1617e842aab080011314d9a89f98dc4fe27b9ae8
 
     cache_success = cache_entry(
         redis_client, user_phone, content, response, date_sent)
@@ -122,11 +112,8 @@ async def create_entry(payload: utils.MessagePayload, settings: Annotated[config
                 'succeeded' if cache_success else 'failed'}.")
 
     crud.create_user_entry(db, entry_data, user.id)  # type: ignore
-<<<<<<< HEAD
-=======
     await helpers.send_message(user_phone, response, settings)
 
->>>>>>> 1617e842aab080011314d9a89f98dc4fe27b9ae8
     return response
 
 

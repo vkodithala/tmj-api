@@ -83,7 +83,7 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
     Example user request: "Tell me about a time when I went out in nature with some really good friends and went on an adventure."
 
     Response example:
-    "Remember that incredible trip to Nara, Japan with your close friends? 🌸 You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace. 😊"
+    "Remember that incredible trip to Nara, Japan with your close friends 🌸? You all explored the beautiful trails and immersed yourselves in nature. One of the highlights was climbing up to the mountain and witnessing a breathtaking sunset. You all sat there, sharing deep thoughts and having meaningful conversations about life. It was a moment filled with connection and a sense of peace 😊."
     """
 
     # Create chat engine for the first chatbot
@@ -177,13 +177,12 @@ def initialize_and_get_response(user_phone: str, user_input: str, logger: Logger
             'Not able to concentrate.'
             Based on this understanding, classify the following input as articulating current thoughts or feelings.""",
     ]
-
-    selector = LLMSingleSelector.from_defaults()
+    promptSingle = """You are given two possible classifications for a given input. Based on the input provided, select the classification that best describes it. Break it down step by step and choose the best answer."""
+    selector = LLMSingleSelector.from_defaults(prompt_template_str=promptSingle)
 
     # Use the selector to choose the chatbot
     selector_result = selector.select(choices, query=user_input)
-    # selected_choice = selector_result.selections[0].index
-    selected_choice = 1
+    selected_choice = selector_result.selections[0].index
 
     if selected_choice == 0:
         # Use the first chatbot (RAG enabled)
