@@ -32,6 +32,7 @@ from app import config, utils, tokenizer, main
 
 from sqlalchemy import make_url
 from llama_index.vector_stores.postgres import PGVectorStore
+from langchain_community.chat_message_histories import RedisChatMessageHistory
 
 
 # Function to initialize the CustomSQLRetriever
