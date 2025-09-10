@@ -2,15 +2,23 @@
 
 An AI-powered journaling platform that enables users to journal via SMS text messages and receive intelligent, empathetic responses powered by advanced language models.
 
+
+## 🎥 Demo
+
+[![Watch the demo](https://github.com/user-attachments/assets/5d10f1d8-5f4e-45ec-a5ba-39d8a6539f94)](https://x.com/i/status/1810358545982034152)
+
+> Click the image above to watch the full demo on X.
+
 ## 🌟 Features
 
-- **SMS-based journaling**: Journal by simply texting your thoughts and experiences
+- **Whats-App & Imessage based journaling**: Journal by simply texting your thoughts and experiences
 - **AI-powered responses**: Get personalized, empathetic responses from an AI companion
 - **Emotion analysis**: Automatic emotion classification of journal entries
 - **Memory & reflection**: AI can help you reflect on past experiences using semantic search
 - **Dual response modes**: 
   - Reflection mode: Helps you revisit and reflect on past journal entries
   - Current thoughts mode: Responds to your immediate feelings and experiences
+- **Multimodal Input**: Works with images of written and voice entires
 - **Vector similarity search**: Find related past entries using advanced embeddings
 - **User management**: Phone number-based user accounts
 
@@ -43,7 +51,7 @@ An AI-powered journaling platform that enables users to journal via SMS text mes
   - OpenAI
   - Cohere
   - LangChain (for tracing)
-  - SendBlue (for SMS)
+  - SendBlue (for imessage)
 
 ### Installation
 
