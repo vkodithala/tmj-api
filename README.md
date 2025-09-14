@@ -41,6 +41,123 @@ An AI-powered journaling platform that enables users to journal via SMS text mes
 ### External Integrations
 - **SendBlue API**: SMS messaging service for text-based interactions
 
+## 🧭 Architecture Diagrams
+
+### End-to-end Message Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SB as SendBlue (SMS)
+    participant API as FastAPI /entries
+    participant CRUD as CRUD/Models
+    participant DB as PostgreSQL + pgvector
+    participant H as helpers (AI pipeline)
+    participant LLM as OpenAI (ChatOpenAI)
+    participant RAG as LlamaIndex + CustomSQLRetriever
+    participant CH as Cohere (Re-rank)
+
+    U->>SB: Send SMS
+    SB->>API: POST /entries (from_number, content, date_sent, …)
+    API->>CRUD: get_user_by_phone_number(from_number)
+    CRUD->>DB: SELECT users WHERE phone_number=…
+    DB-->>CRUD: user or none
+    CRUD-->>API: user found
+    API->>API: tokenizer.embed(content), tokenizer.emotion(content)
+    API->>CRUD: query_embeddings(user.id, embedding)  // warms cache
+    API->>H: generate_response(user_phone, content, date_sent, settings, db)
+
+    rect rgb(245,245,245)
+      note over H,LLM: AI Response Pipeline (two modes)
+      H->>RAG: CustomSQLRetriever.retrieve(query)
+      RAG->>DB: Vector similarity search (entries.embedding <=> query)
+      DB-->>RAG: Top-k entries with similarity
+      RAG->>CH: Rerank top candidates
+      CH-->>H: Reranked nodes
+      H->>LLM: Prompt + context (reflection) OR conversational prompt (current thoughts)
+      LLM-->>H: Generated response
+    end
+
+    H-->>API: response
+    API->>CRUD: create_user_entry(EntryCreate{content, embedding, emotions}, author_id)
+    CRUD->>DB: INSERT INTO entries …
+    DB-->>CRUD: inserted row
+    API->>H: send_message(user_phone, response)
+    H->>H: split_paragraph_into_sentences (emoji-aware)
+    loop For each sentence
+      H->>SB: POST /api/send-message {number, content}
+    end
+    SB-->>U: SMS message(s)
+    API-->>SB: 200 OK (returns response text)
+```
+
+### Components and Data Flow
+
+```mermaid
+flowchart LR
+  subgraph Client
+    U[User (SMS)]
+  end
+
+  subgraph Messaging
+    SB[SendBlue SMS Webhook]
+  end
+
+  subgraph API[FastAPI Application]
+    EP1[/POST /entries/ (MessagePayload)/]
+    EP2[/POST /users/ (UserCreate)/]
+    HLP[helpers.py]
+    CR[crud.py]
+    TOK[tokenizer (embed, emotion)]
+  end
+
+  subgraph AI[AI Layer]
+    LC[LangChain ChatOpenAI (gpt-4o)]
+    LI[LlamaIndex Query/RAG]
+    CSR[CustomSQLRetriever (utils.py)]
+    RR[Cohere Re-rank]
+  end
+
+  subgraph Data[PostgreSQL + pgvector]
+    USERS[(users)]
+    ENTRIES[(entries: content, emotions, embedding Vector(768))]
+  end
+
+  U --> SB --> EP1
+  EP2 --> CR --> USERS
+  EP1 --> CR --> USERS
+  EP1 --> TOK
+  EP1 --> HLP
+  HLP --> CSR --> ENTRIES
+  CSR --> RR --> HLP
+  HLP --> LC --> HLP
+  HLP --> CR --> ENTRIES
+  HLP --> SB
+```
+
+### Data Model (ER Diagram)
+
+```mermaid
+erDiagram
+    USERS ||--o{ ENTRIES : "has many"
+    USERS {
+        int id PK
+        string phone_number "length 12"
+        datetime created_at
+        string hashed_password
+    }
+    ENTRIES {
+        int id PK
+        datetime created_at
+        date date
+        string emotions "nullable"
+        text content
+        vector[768] embedding "pgvector"
+        int author_id FK "-> users.id"
+    }
+```
+
 ## 🚀 Getting Started
 
 ### Prerequisites
