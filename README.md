@@ -96,32 +96,32 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  subgraph Client
-    U[User (SMS)]
+  subgraph CLIENT [Client]
+    U["User SMS"]
   end
 
-  subgraph Messaging
-    SB[SendBlue SMS Webhook]
+  subgraph MESSAGING [Messaging]
+    SB["SendBlue SMS Webhook"]
   end
 
-  subgraph API[FastAPI Application]
-    EP1[/POST /entries/ (MessagePayload)/]
-    EP2[/POST /users/ (UserCreate)/]
-    HLP[helpers.py]
-    CR[crud.py]
-    TOK[tokenizer (embed, emotion)]
+  subgraph API ["FastAPI Application"]
+    EP1["POST /entries/ MessagePayload"]
+    EP2["POST /users/ UserCreate"]
+    HLP["helpers.py"]
+    CR["crud.py"]
+    TOK["tokenizer embed, emotion"]
   end
 
-  subgraph AI[AI Layer]
-    LC[LangChain ChatOpenAI (gpt-4o)]
-    LI[LlamaIndex Query/RAG]
-    CSR[CustomSQLRetriever (utils.py)]
-    RR[Cohere Re-rank]
+  subgraph AI ["AI Layer"]
+    LC["LangChain ChatOpenAI gpt-4o"]
+    LI["LlamaIndex Query/RAG"]
+    CSR["CustomSQLRetriever utils.py"]
+    RR["Cohere Re-rank"]
   end
 
-  subgraph Data[PostgreSQL + pgvector]
+  subgraph DATA ["PostgreSQL + pgvector"]
     USERS[(users)]
-    ENTRIES[(entries: content, emotions, embedding Vector(768))]
+    ENTRIES[(entries: content, emotions, embedding Vector 768)]
   end
 
   U --> SB --> EP1
