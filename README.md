@@ -1,4 +1,4 @@
-# TextMyJournal API (TMJ-API)
+# TxtMyJournal API (TMJ-API)
 
 An AI-powered journaling platform that enables users to journal via SMS text messages and receive intelligent, empathetic responses powered by advanced language models.
 
